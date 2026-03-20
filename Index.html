@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 
 <head>
   <base target="_top">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>申請結果 - 軽音部 引き継ぎ資料</title>
+  <title>軽音部 引き継ぎ資料 アクセス申請</title>
 
   <style>
     /* ===== Reset & Base ===== */
@@ -39,13 +39,238 @@
       max-width: 440px;
       width: 100%;
       box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
-      text-align: center;
     }
 
-    /* ===== Result Details ===== */
+    /* ===== Header ===== */
+    .header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .header .icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+
+    .header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+
+    .header p {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.55);
+      line-height: 1.6;
+    }
+
+    /* ===== Steps indicator ===== */
+    .steps {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 28px;
+    }
+
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.35);
+      transition: color 0.3s;
+    }
+
+    .step.active {
+      color: #7c83ff;
+    }
+
+    .step.done {
+      color: #4caf93;
+    }
+
+    .step-num {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 12px;
+      border: 2px solid rgba(255, 255, 255, 0.15);
+      transition: all 0.3s;
+    }
+
+    .step.active .step-num {
+      border-color: #7c83ff;
+      background: rgba(124, 131, 255, 0.15);
+      color: #7c83ff;
+    }
+
+    .step.done .step-num {
+      border-color: #4caf93;
+      background: rgba(76, 175, 147, 0.15);
+      color: #4caf93;
+    }
+
+    .step-connector {
+      width: 30px;
+      height: 2px;
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: 1px;
+    }
+
+    /* ===== Buttons & Links ===== */
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 13px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      text-align: center;
+      text-decoration: none;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.3s, background 0.3s;
+    }
+
+    .btn-google {
+      background: #fff;
+      color: #3c4043;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .btn-google:hover {
+      background: #f8f9fa;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .btn-google img {
+      width: 20px;
+      height: 20px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #7c83ff, #5c64e4);
+      color: #fff;
+      border: none;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 24px rgba(124, 131, 255, 0.35);
+    }
+    
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
+    }
+    
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.15);
+      transform: translateY(-1px);
+    }
+
+    /* ===== Forms & Inputs ===== */
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 8px;
+    }
+
+    .input-wrapper {
+      position: relative;
+    }
+
+    .input-wrapper input {
+      width: 100%;
+      padding: 12px 44px 12px 16px;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 10px;
+      color: #fff;
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+
+    .input-wrapper input:focus {
+      border-color: #7c83ff;
+      box-shadow: 0 0 0 3px rgba(124, 131, 255, 0.15);
+    }
+
+    .toggle-password {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: rgba(255, 255, 255, 0.4);
+      cursor: pointer;
+      font-size: 18px;
+      padding: 4px;
+    }
+
+    /* ===== User Info ===== */
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(76, 175, 147, 0.1);
+      border: 1px solid rgba(76, 175, 147, 0.25);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 20px;
+    }
+
+    .user-info .avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #7c83ff, #4caf93);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .user-info .details {
+      overflow: hidden;
+    }
+
+    .user-info .name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .user-info .email {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    /* ===== Step 3 Content ===== */
     .result-icon {
       font-size: 64px;
       margin-bottom: 20px;
+      text-align: center;
       animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
 
@@ -59,67 +284,19 @@
       font-weight: 700;
       color: #fff;
       margin-bottom: 12px;
+      text-align: center;
     }
     
-    .title.success {
-      color: #4caf93;
-    }
-
-    .title.error {
-      color: #ff8a80;
-    }
+    .title.success { color: #4caf93; }
+    .title.error { color: #ff8a80; }
 
     .message {
-      font-size: 15px;
+      font-size: 14px;
       color: rgba(255, 255, 255, 0.8);
       line-height: 1.6;
       white-space: pre-line;
       margin-bottom: 24px;
-    }
-    
-    .user-email {
-      display: inline-block;
-      background: rgba(255, 255, 255, 0.08);
-      border-radius: 12px;
-      padding: 8px 16px;
-      font-size: 13px;
-      color: rgba(255, 255, 255, 0.6);
-      margin-bottom: 24px;
-    }
-
-    /* ===== Button ===== */
-    .btn {
-      display: inline-block;
-      width: 100%;
-      padding: 13px;
-      border-radius: 10px;
-      font-size: 15px;
-      font-weight: 700;
-      text-decoration: none;
-      transition: transform 0.15s, box-shadow 0.3s;
-    }
-    
-    .btn-primary {
-      background: linear-gradient(135deg, #7c83ff, #5c64e4);
-      color: #fff;
-    }
-    
-    .btn-secondary {
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      color: #fff;
-    }
-
-    .btn:hover {
-      transform: translateY(-1px);
-    }
-    
-    .btn-primary:hover {
-      box-shadow: 0 6px 24px rgba(124, 131, 255, 0.35);
-    }
-    
-    .btn-secondary:hover {
-      background: rgba(255, 255, 255, 0.15);
+      text-align: center;
     }
 
     /* ===== Footer ===== */
@@ -134,37 +311,112 @@
 
 <body>
   <div class="card">
-    <? if (success) { ?>
-      <!-- 成功画面 -->
-      <div class="result-icon">🎉</div>
-      <h1 class="title success">アクセス権を付与しました</h1>
-      
-      <? if (email) { ?>
-      <div class="user-email"><?= email ?></div>
+    <!-- Header -->
+    <div class="header">
+      <div class="icon">🎸</div>
+      <h1>軽音部 引き継ぎ資料</h1>
+      <p>アクセス権を取得するには、Google アカウントとパスワードが必要です。</p>
+    </div>
+
+    <? if (step === 3) { ?>
+      <!-- ＝＝＝＝＝＝＝＝ STEP 3: 完了（成功／失敗） ＝＝＝＝＝＝＝＝ -->
+      <? if (success) { ?>
+        <div class="result-icon">🎉</div>
+        <h1 class="title success">アクセス権を付与しました</h1>
+        
+        <? if (email) { ?>
+        <div class="user-info" style="justify-content: center; background: none; border: none; padding: 0;">
+          <div class="email" style="font-size: 14px;"><?= email ?></div>
+        </div>
+        <? } ?>
+        
+        <p class="message"><?= message ?></p>
+        
+        <a href="https://drive.google.com" class="btn btn-primary" target="_blank" rel="noopener noreferrer">
+          Google Drive を開く
+        </a>
+      <? } else { ?>
+        <div class="result-icon">❌</div>
+        <h1 class="title error">認証エラー</h1>
+        
+        <p class="message"><?= message ?></p>
+        
+        <a href="<?= ScriptApp.getService().getUrl() ?>" class="btn btn-secondary">
+          最初からやり直す
+        </a>
       <? } ?>
-      
-      <p class="message"><?= message ?></p>
-      
-      <a href="https://drive.google.com" class="btn btn-primary" target="_blank" rel="noopener noreferrer">
-        Google Drive を開く
-      </a>
-      
+
     <? } else { ?>
-      <!-- エラー画面 -->
-      <div class="result-icon">❌</div>
-      <h1 class="title error">認証エラー</h1>
-      
-      <? if (email) { ?>
-      <div class="user-email"><?= email ?></div>
+
+      <!-- ＝＝＝＝＝＝＝＝ STEP 1 & 2 共通: インジケーター ＝＝＝＝＝＝＝＝ -->
+      <div class="steps">
+        <div class="step <?= step === 1 ? 'active' : 'done' ?>" id="step1">
+          <span class="step-num">1</span>
+          <span>ログイン</span>
+        </div>
+        <div class="step-connector"></div>
+        <div class="step <?= step === 2 ? 'active' : '' ?>" id="step2">
+          <span class="step-num">2</span>
+          <span>パスワード</span>
+        </div>
+      </div>
+
+      <!-- ＝＝＝＝＝＝＝＝ STEP 1: ログイン要求 ＝＝＝＝＝＝＝＝ -->
+      <? if (step === 1) { ?>
+        <div style="text-align: center; margin-bottom: 30px;">
+          <p style="font-size: 14px; color: rgba(255,255,255,0.7); margin-bottom: 24px;">
+            まずは Google アカウントでログインしてください。<br>あなたのメールアドレスに権限を付与します。
+          </p>
+          <a href="<?= oauthUrl ?>" class="btn btn-google">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google Logo">
+            Google でログイン
+          </a>
+        </div>
       <? } ?>
-      
-      <p class="message"><?= message ?></p>
-      
-      <a href="javascript:history.back()" class="btn btn-secondary">
-        入力画面に戻る
-      </a>
+
+      <!-- ＝＝＝＝＝＝＝＝ STEP 2: パスワード入力 ＝＝＝＝＝＝＝＝ -->
+      <? if (step === 2) { ?>
+        <div class="user-info">
+          <div class="avatar"><?= userName ? userName.charAt(0).toUpperCase() : '?' ?></div>
+          <div class="details">
+            <div class="name"><?= userName ?></div>
+            <div class="email"><?= userEmail ?></div>
+          </div>
+        </div>
+
+        <form method="POST" action="<?= ScriptApp.getService().getUrl() ?>">
+          <!-- アカウント情報を渡すためのセッショントークン -->
+          <input type="hidden" name="sessionToken" value="<?= sessionToken ?>">
+          
+          <div class="form-group">
+            <label for="passwordInput">共有パスワード</label>
+            <div class="input-wrapper">
+              <input type="password" id="passwordInput" name="password" placeholder="パスワードを入力" required autofocus>
+              <button class="toggle-password" id="togglePassword" type="button" title="パスワードを表示">👁</button>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary" onclick="this.innerHTML='送信中...'; this.style.opacity='0.8';">
+            アクセス権を申請
+          </button>
+        </form>
+
+        <script>
+          document.getElementById('togglePassword').addEventListener('click', function () {
+            var input = document.getElementById('passwordInput');
+            if (input.type === 'password') {
+              input.type = 'text';
+              this.textContent = '🔒';
+            } else {
+              input.type = 'password';
+              this.textContent = '👁';
+            }
+          });
+        </script>
+      <? } ?>
+
     <? } ?>
-    
+
     <div class="footer">
       軽音部 引き継ぎ認証システム
     </div>
