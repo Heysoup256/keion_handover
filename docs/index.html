@@ -315,7 +315,8 @@
       gap: 6px;
     }
 
-    .setup-notice p, .setup-notice li {
+    .setup-notice p,
+    .setup-notice li {
       font-size: 13px;
       color: rgba(255, 255, 255, 0.8);
       line-height: 1.5;
@@ -434,7 +435,8 @@
         <div class="form-group">
           <label for="passwordInput">共有パスワード</label>
           <div class="input-wrapper">
-            <input type="password" id="passwordInput" name="password" placeholder="パスワードを入力" autocomplete="off" required>
+            <input type="password" id="passwordInput" name="password" placeholder="パスワードを入力" autocomplete="off"
+              required>
             <button class="toggle-password" id="togglePassword" type="button" title="パスワードを表示">👁</button>
           </div>
         </div>
@@ -454,12 +456,12 @@
     // =========================================================================
     // 【重要設定】デプロイ後に必ず以下の2つの値を書き換えてください
     // =========================================================================
-    
+
     // 1. GAS 「新しいデプロイ」で発行された URL (https://script.google.com/.../exec)
-    const GAS_EXEC_URL = ''; 
-    
+    const GAS_EXEC_URL = 'https://script.google.com/macros/s/AKfycby4rgLPMvcoI864szLi7ISPzWCc7-k1mC8Cxugm6QF44gIIS7TEg0gw5ZJTN93lnbUE/exec';
+
     // 2. Google Cloud Console で作成した「OAuth 2.0 クライアント ID」
-    const GOOGLE_CLIENT_ID = '';
+    const GOOGLE_CLIENT_ID = '387984121276-ojjf4k8sllftcllc61oce245fg1eigmq.apps.googleusercontent.com';
 
     // =========================================================================
 
@@ -475,7 +477,7 @@
       if (!GAS_EXEC_URL || !GOOGLE_CLIENT_ID) {
         document.getElementById('setupNotice').style.display = 'block';
         document.getElementById('signInSection').style.display = 'none';
-        
+
         // 開発用にモック動作させる場合は以下のコメントを外す
         // testLocally(); 
         return;
@@ -514,23 +516,23 @@
       try {
         var base64Url = currentIdToken.split('.')[1];
         var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        var jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        var jsonPayload = decodeURIComponent(atob(base64).split('').map(function (c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
         }).join(''));
-        
+
         var payload = JSON.parse(jsonPayload);
         currentUserName = payload.name || payload.email;
         currentUserEmail = payload.email;
-        
+
         // UI 更新
         document.getElementById('userAvatar').textContent = currentUserName.charAt(0).toUpperCase();
         document.getElementById('userName').textContent = currentUserName;
         document.getElementById('userEmail').textContent = currentUserEmail;
-  
+
         // ステップ遷移
         setStep(2);
         showSection('passwordSection');
-  
+
         // パスワード入力にフォーカス
         setTimeout(function () {
           document.getElementById('passwordInput').focus();
@@ -542,7 +544,7 @@
     }
 
     // ===== Form Submit Handler =====
-    document.getElementById('gasForm').addEventListener('submit', function(e) {
+    document.getElementById('gasForm').addEventListener('submit', function (e) {
       var password = document.getElementById('passwordInput').value.trim();
 
       if (!password) {
@@ -562,7 +564,7 @@
       btn.innerHTML = '<span class="spinner"></span>送信中...';
       btn.style.opacity = '0.8';
       hideError();
-      
+
       // 注意: form action="GAS_EXEC_URL" method="POST" により
       // ページ遷移してGASが返すHTMLが表示されます。
     });
