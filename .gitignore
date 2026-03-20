@@ -1,0 +1,9 @@
+# Dependencies
+node_modules/
+
+# Clasp
+.clasp.json
+
+# OS
+.DS_Store
+Thumbs.db
