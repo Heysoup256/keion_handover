@@ -1,358 +1,102 @@
-# GAS 認証・権限付与システム — 軽音部 引き継ぎ資料
+# 軽音部 引き継ぎ資料アクセス認証システム
 
-後輩のメールアドレスが事前にわからなくても、**Google Sign-In + 共有パスワード** で引き継ぎ資料（Google Sites + Drive）のアクセス権を付与できる Web アプリです。
+このプロジェクトは、軽音部の後輩（メールアドレスが事前には分からないメンバー）に対して、Google Drive の共有フォルダや Google Sites へのアクセス権限を安全に付与するためのシステムです。
 
----
+## アーキテクチャ
 
-## 目次
+Google Apps Script (GAS) の `origin_mismatch` エラーを回避するため、以下の構成になっています。
 
-1. [前提条件](#前提条件)
-2. [Step 1: GAS プロジェクト作成（スプレッドシートにバインド）](#step-1-gas-プロジェクト作成スプレッドシートにバインド)
-3. [Step 2: OAuth クライアント ID の取得](#step-2-oauth-クライアント-id-の取得)
-4. [Step 3: clasp で GAS にアップロード](#step-3-clasp-で-gas-にアップロード)
-5. [Step 4: Script Properties の設定](#step-4-script-properties-の設定)
-6. [Step 5: Web アプリとしてデプロイ](#step-5-web-アプリとしてデプロイ)
-7. [Step 6: OAuth 設定の更新](#step-6-oauth-設定の更新)
-8. [Step 7: 動作テスト](#step-7-動作テスト)
-9. [GitHub でコードを管理する](#github-でコードを管理する)
-10. [セキュリティ対策](#セキュリティ対策)
-11. [メンテナンス](#メンテナンス)
+1. **フロントエンド (GitHub Pages):** `docs/index.html`
+   - ユーザーがアクセスする画面です。
+   - Google Identity Services を使って Google アカウントでログインし、メアド情報（ID トークン）を取得します。
+   - パスワードを入力し、GAS のバックエンドに送信（POST）します。
+2. **バックエンド (GAS):** `Code.gs`, `Index.html`
+   - フロントエンドから送られてきた ID トークンの検証とパスワードの照合を行います。
+   - 認証に成功すると、指定された Google Drive / Sites の権限を付与し、結果画面（`Index.html`）を返します。
 
 ---
 
-## 前提条件
+## セットアップ手順
 
-- Google アカウント
-- Node.js (v16 以上) ※ clasp 使用時のみ
-- git ※ GitHub 管理時のみ
+### Step 1: GAS プロジェクトの準備
 
----
+1. Google Drive 上で新規または既存のスプレッドシートを開きます。
+2. メニューから **「拡張機能」 > 「Apps Script」** をクリックします。
+3. エディタが開いたら、リポジトリ内の `Code.gs` と `Index.html` の内容をコピーして貼り付けます。
+4. **「デプロイ」 > 「新しいデプロイ」** をクリックします。
+   - 種類の選択の横にある歯車アイコン ⚙️ をクリックし、**「ウェブアプリ」** を選択。
+   - 説明: `v1` など任意
+   - 次のユーザーとして実行: **「自分」**
+   - アクセスできるユーザー: **「全員」**
+5. 「デプロイ」をクリックし、表示された **「ウェブアプリの URL」(`https://script.google.com/.../exec`) をコピー** して控えておきます。
 
-## Step 1: GAS プロジェクト作成（スプレッドシートにバインド）
+### Step 2: Google Cloud Console で OAuth クライアント ID の取得
 
-認証ログをスプレッドシートに自動記録するため、**スプレッドシートにバインドして**作成します。
+Google ログインを機能させるために必要です。
 
-1. [Google Drive](https://drive.google.com/) を開く
-2. **新規 → Google スプレッドシート** で新しいスプレッドシートを作成
-3. スプレッドシートに適当な名前をつける（例: `軽音部 引き継ぎ認証システム`）
-4. メニューバーの **拡張機能 → Apps Script** をクリック
-5. GAS エディタが開くので、プロジェクト名を設定（例: `keion-auth`）
+1. [Google Cloud Console](https://console.cloud.google.com/) にアクセスします。
+2. プロジェクトを作成または選択します。
+3. **「API とサービス」 > 「OAuth 同意画面」** を開き、**「外部」** を選択して作成します。
+   - アプリ名: `軽音部 引き継ぎシステム` (任意)
+   - ユーザーサポートメール、デベロッパーの連絡先情報: 自分のメールドレス
+   - 保存して次へ（スコープ等はデフォルトのままでOK）
+4. **「API とサービス」 > 「認証情報」** を開きます。
+5. **「＋認証情報を作成」 > 「OAuth クライアント ID」** を選択します。
+   - アプリケーションの種類: **「ウェブ アプリケーション」**
+   - 名前: `GitHub Pages Auth` (任意)
+   - **承認済みの JavaScript 生成元**: 以下を追加します。
+     - `https://<あなたのGitHubユーザー名>.github.io`
+       *(例: `https://souosu.github.io` など。末尾の `/` は不要です)*
+6. 「作成」をクリックすると、**「クライアント ID」** が表示されます。これをコピーして控えておきます。
 
-> ⚠️ この時点では、中身の編集は不要です。clasp で後からアップロードします。
+### Step 3: GAS の設定（Script Properties）
 
----
+GAS のエディタに戻り、右端の歯車アイコン ⚙️（プロジェクトの設定）を開き、一番下の「スクリプト プロパティ」に以下の値を登録します。
 
-## Step 2: OAuth クライアント ID の取得
+| プロパティ名 | 設定する値 |
+| :--- | :--- |
+| **`GOOGLE_CLIENT_ID`** | Step 2 で取得した **クライアント ID** |
+| **`PASSWORD_HASH`** | 後輩に教えるパスワードの SHA-256 ハッシュ値。※取得方法は後述 |
+| **`DRIVE_IDS`** | 権限を付与したい Drive ファイル/フォルダの ID（カンマ区切り） |
+| **`SITES_FILE_ID`** | 権限を付与したい Google Sites のファイル ID |
+| `ALLOWED_DOMAINS` | (任意) 許可するメールドメイン（例: `gmail.com, example.ac.jp`） |
+| `MAX_ATTEMPTS` | (任意) パスワード間違いの最大試行回数（デフォルト: 5） |
+| `LOCKOUT_MINUTES` | (任意) ロックアウト時間（分）（デフォルト: 30） |
 
-Google Sign-In を使うために、Google Cloud Console で OAuth クライアント ID を作成する必要があります。
+**※ パスワードハッシュの取得方法**
+1. `Code.gs` 内の `generatePasswordHash` 関数を探します。
+2. エディタ上部の関数選択プルダウンから `generatePasswordHash` を選び、「実行」をクリックします。
+3. 実行ログに表示されるハッシュ値を `PASSWORD_HASH` に設定します。（デフォルトのコードではパスワードが `ここにパスワードを入力` になっているので、適宜コードを書き換えて実行してください）。
 
-### 2-1. GAS プロジェクトの GCP プロジェクト番号を確認
+### Step 4: GitHub Pages の設定
 
-1. GAS エディタを開く
-2. 左サイドバーの **⚙ プロジェクトの設定** をクリック
-3. **Google Cloud Platform (GCP) プロジェクト** のセクションを確認
-   - デフォルトのプロジェクト番号が表示されています
-
-GAS エディタからGCPダッシュボードへのリンクが無い場合:
-1. [Google Cloud Console](https://console.cloud.google.com/) にアクセス
-2. 上部のプロジェクトセレクターを確認
-
-### 2-2. OAuth 同意画面の設定
-
-> ❗**初回のみ必要な作業です。**
-
-1. [Google Cloud Console](https://console.cloud.google.com/) を開く
-2. 上部のプロジェクトセレクターで、GAS に紐づいたプロジェクトを選択
-3. 左メニュー → **APIとサービス → OAuth 同意画面**
-4. **User Type** で **外部** を選択 → **作成**
-5. 以下を入力:
-   - **アプリ名**: `軽音部 引き継ぎ認証` (任意)
-   - **ユーザーサポートメール**: 自分のメールアドレス
-   - **デベロッパーの連絡先情報**: 自分のメールアドレス
-6. **保存して次へ** を繰り返し、最後まで進む
-7. **公開ステータス** で **テスト → 本番** に変更（※ 後輩が使えるようにするため）
-
-### 2-3. OAuth クライアント ID の作成
-
-1. 左メニュー → **APIとサービス → 認証情報**
-2. 上部の **＋ 認証情報を作成 → OAuth クライアント ID**
-3. 以下を設定:
-   - **アプリケーションの種類**: `ウェブ アプリケーション`
-   - **名前**: `軽音部認証アプリ` (任意)
-   - **承認済みの JavaScript 生成元**: 以下を追加
-     ```
-     https://script.google.com
-     ```
-     ※ デプロイ後にデプロイURLのオリジンも追加します（Step 6）
-4. **作成** をクリック
-5. 表示される **クライアント ID** をコピーしてメモ
-   - 形式: `xxxxxxxxxxxx-xxxxxxxxxxxxxxxx.apps.googleusercontent.com`
-
----
-
-## Step 3: clasp で GAS にアップロード
-
-### 3-1. clasp のインストール
-
-```bash
-npm install -g @google/clasp
-```
-
-### 3-2. clasp にログイン
-
-```bash
-clasp login
-```
-
-ブラウザが開くので、GAS プロジェクトのオーナーの Google アカウントでログインします。
-
-### 3-3. GAS プロジェクトの Script ID を取得
-
-1. GAS エディタを開く（Step 1 で作成したプロジェクト）
-2. 左サイドバーの **⚙ プロジェクトの設定**
-3. **スクリプト ID** をコピー
-
-### 3-4. clasp プロジェクトと紐づけ
-
-このリポジトリのルートディレクトリで以下を実行:
-
-```bash
-cd keion_handover
-clasp clone <スクリプトID>
-```
-
-これで `.clasp.json` が生成されます。
-
-> ⚠️ `.clasp.json` にはスクリプト ID が入っているため、`.gitignore` で除外しています（秘匿情報のため）。
-
-もし既に `.clasp.json` が無い状態から始める場合は、手動で作成しても OK:
-
-```json
-{
-  "scriptId": "ここにスクリプトIDを貼る",
-  "rootDir": "."
-}
-```
-
-### 3-5. GAS にコードをアップロード (push)
-
-```bash
-clasp push
-```
-
-> 「Manifest file has been updated. Do you want to push and overwrite?」と聞かれたら `y` を入力。
-
-`.claspignore` に記載されたファイル（`README.md`, `.gitignore` 等）はアップロードされません。
-`Code.gs` と `Index.html` のみが GAS にアップロードされます。
-
-### 3-6. GAS エディタで確認
-
-```bash
-clasp open
-```
-
-ブラウザで GAS エディタが開くので、`Code.gs` と `Index.html` がアップロードされていることを確認してください。
-
----
-
-## Step 4: Script Properties の設定
-
-GAS エディタ → **⚙ プロジェクトの設定** → **スクリプト プロパティ** に以下を追加:
-
-| プロパティ名 | 値 | 必須 |
-|---|---|:---:|
-| `GOOGLE_CLIENT_ID` | Step 2 で取得したクライアント ID | ✅ |
-| `PASSWORD_HASH` | 下記の手順で生成した SHA-256 ハッシュ | ✅ |
-| `DRIVE_IDS` | 共有するファイル/フォルダの ID（カンマ区切り） | ✅ |
-| `SITES_FILE_ID` | Google Sites のファイル ID | ✅ |
-| `ALLOWED_DOMAINS` | 許可するメールドメイン（カンマ区切り） | |
-| `MAX_ATTEMPTS` | 最大試行回数（デフォルト: 5） | |
-| `LOCKOUT_MINUTES` | ロックアウト時間/分（デフォルト: 30） | |
-
-### パスワードハッシュの生成方法
-
-1. GAS エディタで `Code.gs` を開く
-2. 関数セレクターで `generatePasswordHash` を選択
-3. ▶ ボタンをクリックして実行
-4. 「実行ログ」にハッシュ値が出力される
-5. そのハッシュ値を `PASSWORD_HASH` として設定
-
-> ⚠️ デフォルトでは `ここにパスワードを入力` のハッシュが生成されます。
-> 実際のパスワードを使うには、関数内の引数を書き換えてから実行してください:
-> ```javascript
-> generatePasswordHash('実際のパスワード')
-> ```
-
-### ファイル/フォルダ ID の取得方法
-
-**Google Sites のファイル ID:**
-```
-https://sites.google.com/d/XXXXXXXXXXXXX/p/...
-//                          ↑ これがファイル ID
-```
-
-**Google Drive のファイル/フォルダ ID:**
-```
-https://drive.google.com/file/d/XXXXXXXXXXXXX/view
-https://drive.google.com/drive/folders/XXXXXXXXXXXXX
-//                                      ↑ これが ID
-```
-
-### 設定確認
-
-GAS エディタで `checkSetup()` を実行して、設定が正しいか確認してください。
-
----
-
-## Step 5: Web アプリとしてデプロイ
-
-### GAS エディタからデプロイ
-
-1. GAS エディタ → **デプロイ → 新しいデプロイ**
-2. **種類の選択** → ⚙ → **ウェブアプリ**
-3. 以下を設定:
-   - **説明**: `軽音部 引き継ぎ資料 認証システム` (任意)
-   - **次のユーザーとして実行**: **自分**
-   - **アクセスできるユーザー**: **全員**
-4. **デプロイ** をクリック
-5. 表示される **ウェブアプリ URL** をコピー
-
-### clasp からデプロイ（コマンドライン）
-
-```bash
-clasp deploy --description "v1.0"
-```
-
-> ⚠️ 初回は GAS エディタからデプロイすることを推奨します（アクセス権の設定が GUI で確認しやすいため）。
-
----
-
-## Step 6: OAuth 設定の更新
-
-デプロイ URL を取得したら、**Google Cloud Console** に戻って OAuth 設定を更新します。
-
-1. [Google Cloud Console](https://console.cloud.google.com/) → **APIとサービス → 認証情報**
-2. Step 2 で作成した OAuth クライアント ID をクリック
-3. **承認済みの JavaScript 生成元** に以下を追加:
+1. このリポジトリの `docs/index.html` をエディタで開きます。
+2. コードの下部（`<script>` の最初）にある以下の2つの定数を書き換えて保存します。
+   ```javascript
+   const GAS_EXEC_URL = 'Step 1 で取得したウェブアプリの URL (https://.../exec)'; 
+   const GOOGLE_CLIENT_ID = 'Step 2 で取得したクライアント ID';
    ```
-   https://script.google.com
-   ```
-   ※ 通常 `https://script.google.com` だけで動作しますが、うまくいかない場合はデプロイ URL から
-   オリジン部分（`https://script.google.com` まで）を追加してください。
+3. 変更をコミットして GitHub にプッシュします。
+4. GitHub リポジトリの **Settings > Pages** を開きます。
+5. **Source** を `Deploy from a branch` にし、**Branch** を `main` または `master` の `/docs` フォルダに設定して「Save」します。
+6. 数分待つとページが公開されます。公開された URL（`https://<username>.github.io/<repository>/`）を部員に共有してください。
 
 ---
 
-## Step 7: 動作テスト
+## セキュリティについて
 
-1. **別の Google アカウント**（テスト用）でデプロイ URL にアクセス
-2. 「Google でログイン」ボタンをクリック
-3. Google アカウントを選択（メールアドレスが自動取得される）
-4. 共有パスワードを入力 → 「アクセス権を申請」
-5. 成功メッセージが表示されれば完了 🎉
-6. バインド先のスプレッドシートに「ログ」シートが作成され、試行が記録されていることを確認
+- **パスワードの秘匿:** パスワードはプレーンテキストではなく SHA-256 でハッシュ化して GAS のプロパティに保存されるため、コードが公開されていても安全です。
+- **改ざん防止:** Google Sign-In で取得した ID トークンは、フロントエンドではなく GAS のサーバーサイド (`Code.gs`) で Google の公開鍵を用いて検証されます。他人のメールアドレスを偽装することはできません。
+- **ブルートフォース対策:** 短時間にパスワードを連続で間違えると一定時間ロックアウトされる機能が実装されています。
+- **スプレッドシートへの記録:** 誰がいつアクセス申請を行い、成功/失敗したかが、バインドされたスプレッドシートの「ログ」シートに自動的に記録されます。
 
----
+## GitHub でのコード管理 (開発者向け)
 
-## GitHub でコードを管理する
+このプロジェクトのコードは GitHub で公開・管理することを前提として設計されています。
 
-### 初期セットアップ
-
-```bash
-cd keion_handover
-
-# Git 初期化
-git init
-
-# 全ファイルをステージング
-git add .
-
-# 初回コミット
-git commit -m "feat: 認証・権限付与システム初期実装"
-
-# GitHub リポジトリを作成（GitHub CLI の場合）
-gh repo create keion_handover --public --source=. --push
-
-# GitHub CLI がない場合は、GitHub のWebサイトで空リポジトリを作成してから:
-git remote add origin https://github.com/あなたのID/keion_handover.git
-git branch -M main
-git push -u origin main
-```
-
-### 安全に公開できる理由
-
-以下のファイルは `.gitignore` で除外、または Script Properties に分離しているため、GitHub にプッシュしても秘匿情報は漏れません:
-
-| 秘匿情報 | 保管場所 | Git管理 |
-|---|---|:---:|
-| OAuth クライアント ID | Script Properties (`GOOGLE_CLIENT_ID`) | ❌ 除外 |
-| パスワードハッシュ | Script Properties (`PASSWORD_HASH`) | ❌ 除外 |
-| ファイル/フォルダ ID | Script Properties (`DRIVE_IDS`, `SITES_FILE_ID`) | ❌ 除外 |
-| スクリプト ID | `.clasp.json` | ❌ `.gitignore` で除外 |
-
-### 日常的なワークフロー
-
-```bash
-# 1. コードを編集
-
-# 2. GAS にアップロード
-clasp push
-
-# 3. GAS エディタで動作確認
-clasp open
-
-# 4. Git にコミット
-git add .
-git commit -m "fix: 〇〇を修正"
-
-# 5. GitHub にプッシュ
-git push
-```
-
-### コードを変更した後の再デプロイ
-
-`clasp push` でコードを更新した後、**デプロイを更新**する必要があります:
-
-```bash
-# デプロイ一覧を確認
-clasp deployments
-
-# 既存のデプロイを更新（デプロイIDを指定）
-clasp deploy --deploymentId <デプロイID> --description "v1.1 - 〇〇を修正"
-```
-
-または GAS エディタで:
-1. **デプロイ → デプロイを管理**
-2. 既存デプロイの ✏️（編集）アイコンをクリック
-3. バージョンを **新しいバージョン** に変更
-4. **デプロイ** をクリック
-
----
-
-## セキュリティ対策
-
-| 対策 | 説明 |
-|---|---|
-| サーバーサイド ID Token 検証 | Google API で検証、`aud` チェック、有効期限チェック |
-| パスワードハッシュ化 | SHA-256 ハッシュとして保存、平文をコードに含まない |
-| Nonce トークン (CSRF対策) | リプレイ攻撃防止のワンタイムトークン |
-| レート制限 | 同一メールアドレスに対する試行回数制限 + ロックアウト |
-| ドメイン制限 | 特定ドメインのメールのみ許可可能 |
-| 権限付与済み記録 | 二重付与を防止 |
-| 秘匿情報の分離 | Script Properties に格納、コードに秘匿情報なし |
-
----
-
-## メンテナンス
-
-### 期限切れ nonce のクリーンアップ
-
-`cleanupExpiredNonces()` を定期的に実行（トリガー設定推奨）して、期限切れの nonce トークンを削除してください。
-
-GAS エディタでトリガーを設定する場合:
-1. 左サイドバー → **⏰ トリガー**
-2. **＋ トリガーを追加**
-3. 関数: `cleanupExpiredNonces` / イベント: 時間主導型 / 毎日
-
-### ログの確認
-
-バインド先のスプレッドシートの「ログ」シートで認証試行の履歴を確認できます。
+1. **秘密情報はコードに含めない:**
+   - クライアント ID やパスワードハッシュなどはすべて GAS の `Script Properties`（環境変数）に保存する設計になっています。
+   - そのため、`Code.gs` や `Index.html` をそのまま GitHub で公開してもセキュリティ上の問題はありません。
+2. **`clasp` の利用:**
+   - ローカル環境でコードを編集し、`clasp push` で GAS に反映させることができます。（本番反映にはGASエディタで「新しいデプロイ（既存バージョンを上書き）」が必要です）。
+   - `.gitignore` と `.claspignore` が適切に設定されており、不要なファイルや `scriptId` が Git にコミットされるのを防ぎます。

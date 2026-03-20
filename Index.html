@@ -1,17 +1,17 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <base target="_top">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>軽音部 引き継ぎ資料 アクセス申請</title>
-
-  <!-- Google Identity Services -->
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <title>申請結果 - 軽音部 引き継ぎ資料</title>
 
   <style>
     /* ===== Reset & Base ===== */
-    *, *::before, *::after {
+    *,
+    *::before,
+    *::after {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
@@ -39,332 +39,87 @@
       max-width: 440px;
       width: 100%;
       box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
-    }
-
-    /* ===== Header ===== */
-    .header {
       text-align: center;
-      margin-bottom: 32px;
     }
 
-    .header .icon {
-      font-size: 48px;
-      margin-bottom: 12px;
+    /* ===== Result Details ===== */
+    .result-icon {
+      font-size: 64px;
+      margin-bottom: 20px;
+      animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
 
-    .header h1 {
+    @keyframes popIn {
+      0% { transform: scale(0); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .title {
       font-size: 22px;
       font-weight: 700;
       color: #fff;
-      margin-bottom: 6px;
+      margin-bottom: 12px;
     }
-
-    .header p {
-      font-size: 13px;
-      color: rgba(255, 255, 255, 0.55);
-      line-height: 1.6;
-    }
-
-    /* ===== Steps indicator ===== */
-    .steps {
-      display: flex;
-      justify-content: center;
-      gap: 8px;
-      margin-bottom: 28px;
-    }
-
-    .step {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 12px;
-      color: rgba(255, 255, 255, 0.35);
-      transition: color 0.3s;
-    }
-
-    .step.active {
-      color: #7c83ff;
-    }
-
-    .step.done {
+    
+    .title.success {
       color: #4caf93;
     }
 
-    .step-num {
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 12px;
-      border: 2px solid rgba(255, 255, 255, 0.15);
-      transition: all 0.3s;
+    .title.error {
+      color: #ff8a80;
     }
 
-    .step.active .step-num {
-      border-color: #7c83ff;
-      background: rgba(124, 131, 255, 0.15);
-      color: #7c83ff;
-    }
-
-    .step.done .step-num {
-      border-color: #4caf93;
-      background: rgba(76, 175, 147, 0.15);
-      color: #4caf93;
-    }
-
-    .step-connector {
-      width: 30px;
-      height: 2px;
-      background: rgba(255, 255, 255, 0.12);
-      border-radius: 1px;
-    }
-
-    /* ===== Sections ===== */
-    .section {
-      display: none;
-      animation: fadeSlideIn 0.4s ease;
-    }
-
-    .section.visible {
-      display: block;
-    }
-
-    @keyframes fadeSlideIn {
-      from {
-        opacity: 0;
-        transform: translateY(12px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    /* ===== Google Sign-In area ===== */
-    #signInSection {
-      text-align: center;
-    }
-
-    #signInSection p {
-      font-size: 13px;
-      color: rgba(255, 255, 255, 0.5);
-      margin-bottom: 20px;
-      line-height: 1.6;
-    }
-
-    #g_id_signin {
-      display: flex;
-      justify-content: center;
-    }
-
-    /* ===== User Info ===== */
-    .user-info {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      background: rgba(76, 175, 147, 0.1);
-      border: 1px solid rgba(76, 175, 147, 0.25);
-      border-radius: 12px;
-      padding: 14px 16px;
-      margin-bottom: 20px;
-    }
-
-    .user-info .avatar {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #7c83ff, #4caf93);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
-      font-weight: 700;
-      color: #fff;
-      flex-shrink: 0;
-    }
-
-    .user-info .details {
-      overflow: hidden;
-    }
-
-    .user-info .name {
-      font-size: 14px;
-      font-weight: 600;
-      color: #fff;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .user-info .email {
-      font-size: 12px;
-      color: rgba(255, 255, 255, 0.5);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    /* ===== Password form ===== */
-    .form-group {
-      margin-bottom: 16px;
-    }
-
-    .form-group label {
-      display: block;
-      font-size: 13px;
-      font-weight: 600;
-      color: rgba(255, 255, 255, 0.7);
-      margin-bottom: 8px;
-    }
-
-    .input-wrapper {
-      position: relative;
-    }
-
-    .input-wrapper input {
-      width: 100%;
-      padding: 12px 44px 12px 16px;
-      background: rgba(255, 255, 255, 0.07);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 10px;
-      color: #fff;
+    .message {
       font-size: 15px;
-      outline: none;
-      transition: border-color 0.3s, box-shadow 0.3s;
+      color: rgba(255, 255, 255, 0.8);
+      line-height: 1.6;
+      white-space: pre-line;
+      margin-bottom: 24px;
+    }
+    
+    .user-email {
+      display: inline-block;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 8px 16px;
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.6);
+      margin-bottom: 24px;
     }
 
-    .input-wrapper input:focus {
-      border-color: #7c83ff;
-      box-shadow: 0 0 0 3px rgba(124, 131, 255, 0.15);
-    }
-
-    .input-wrapper input::placeholder {
-      color: rgba(255, 255, 255, 0.25);
-    }
-
-    .toggle-password {
-      position: absolute;
-      right: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      background: none;
-      border: none;
-      color: rgba(255, 255, 255, 0.4);
-      cursor: pointer;
-      font-size: 18px;
-      padding: 4px;
-      transition: color 0.2s;
-    }
-
-    .toggle-password:hover {
-      color: rgba(255, 255, 255, 0.7);
-    }
-
-    /* ===== Submit button ===== */
-    .submit-btn {
+    /* ===== Button ===== */
+    .btn {
+      display: inline-block;
       width: 100%;
       padding: 13px;
-      background: linear-gradient(135deg, #7c83ff, #5c64e4);
-      border: none;
       border-radius: 10px;
-      color: #fff;
       font-size: 15px;
       font-weight: 700;
-      cursor: pointer;
-      transition: transform 0.15s, box-shadow 0.3s, opacity 0.3s;
-      position: relative;
-      overflow: hidden;
+      text-decoration: none;
+      transition: transform 0.15s, box-shadow 0.3s;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #7c83ff, #5c64e4);
+      color: #fff;
+    }
+    
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
     }
 
-    .submit-btn:hover:not(:disabled) {
+    .btn:hover {
       transform: translateY(-1px);
+    }
+    
+    .btn-primary:hover {
       box-shadow: 0 6px 24px rgba(124, 131, 255, 0.35);
     }
-
-    .submit-btn:active:not(:disabled) {
-      transform: translateY(0);
-    }
-
-    .submit-btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    /* ===== Loading spinner ===== */
-    .spinner {
-      display: inline-block;
-      width: 18px;
-      height: 18px;
-      border: 2px solid rgba(255, 255, 255, 0.3);
-      border-top-color: #fff;
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-      vertical-align: middle;
-      margin-right: 8px;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    /* ===== Result ===== */
-    .result {
-      text-align: center;
-      padding: 8px 0;
-    }
-
-    .result .result-icon {
-      font-size: 56px;
-      margin-bottom: 16px;
-    }
-
-    .result h2 {
-      font-size: 20px;
-      font-weight: 700;
-      color: #fff;
-      margin-bottom: 8px;
-    }
-
-    .result p {
-      font-size: 14px;
-      color: rgba(255, 255, 255, 0.6);
-      line-height: 1.7;
-      white-space: pre-line;
-    }
-
-    /* ===== Error message (inline) ===== */
-    .error-msg {
-      background: rgba(244, 67, 54, 0.12);
-      border: 1px solid rgba(244, 67, 54, 0.3);
-      border-radius: 8px;
-      padding: 10px 14px;
-      color: #ff8a80;
-      font-size: 13px;
-      margin-bottom: 16px;
-      display: none;
-      animation: fadeSlideIn 0.3s ease;
-    }
-
-    .error-msg.visible {
-      display: block;
-    }
-
-    /* ===== Retry link ===== */
-    .retry-link {
-      display: inline-block;
-      margin-top: 20px;
-      color: #7c83ff;
-      font-size: 13px;
-      cursor: pointer;
-      text-decoration: underline;
-      transition: color 0.2s;
-    }
-
-    .retry-link:hover {
-      color: #9fa3ff;
+    
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.15);
     }
 
     /* ===== Footer ===== */
@@ -374,272 +129,46 @@
       font-size: 11px;
       color: rgba(255, 255, 255, 0.25);
     }
-
-    /* ===== Responsive ===== */
-    @media (max-width: 480px) {
-      .card {
-        padding: 28px 20px;
-        border-radius: 16px;
-      }
-
-      .header h1 {
-        font-size: 19px;
-      }
-
-      .step-connector {
-        width: 18px;
-      }
-    }
   </style>
 </head>
 
 <body>
   <div class="card">
-    <!-- Header -->
-    <div class="header">
-      <div class="icon">🎸</div>
-      <h1>軽音部 引き継ぎ資料</h1>
-      <p>アクセス権を取得するには<br>Google アカウントでログインし、パスワードを入力してください</p>
-    </div>
-
-    <!-- Steps Indicator -->
-    <div class="steps">
-      <div class="step active" id="step1">
-        <span class="step-num">1</span>
-        <span>ログイン</span>
-      </div>
-      <div class="step-connector"></div>
-      <div class="step" id="step2">
-        <span class="step-num">2</span>
-        <span>パスワード</span>
-      </div>
-      <div class="step-connector"></div>
-      <div class="step" id="step3">
-        <span class="step-num">3</span>
-        <span>完了</span>
-      </div>
-    </div>
-
-    <!-- Section 1: Google Sign-In -->
-    <div class="section visible" id="signInSection">
-      <p>まずは Google アカウントでログインしてください。<br>あなたのメールアドレスに権限を付与します。</p>
-      <div id="g_id_signin"></div>
-    </div>
-
-    <!-- Section 2: Password Input -->
-    <div class="section" id="passwordSection">
-      <div class="user-info">
-        <div class="avatar" id="userAvatar"></div>
-        <div class="details">
-          <div class="name" id="userName"></div>
-          <div class="email" id="userEmail"></div>
-        </div>
-      </div>
-
-      <div class="error-msg" id="errorMsg"></div>
-
-      <div class="form-group">
-        <label for="passwordInput">共有パスワード</label>
-        <div class="input-wrapper">
-          <input type="password" id="passwordInput" placeholder="パスワードを入力" autocomplete="off">
-          <button class="toggle-password" id="togglePassword" type="button" title="パスワードを表示">👁</button>
-        </div>
-      </div>
-
-      <button class="submit-btn" id="submitBtn" onclick="handleSubmit()">
-        アクセス権を申請
-      </button>
-    </div>
-
-    <!-- Section 3: Result -->
-    <div class="section" id="resultSection">
-      <div class="result">
-        <div class="result-icon" id="resultIcon"></div>
-        <h2 id="resultTitle"></h2>
-        <p id="resultMessage"></p>
-        <span class="retry-link" id="retryLink" onclick="resetToStart()" style="display:none;">
-          最初からやり直す
-        </span>
-      </div>
-    </div>
-
+    <? if (success) { ?>
+      <!-- 成功画面 -->
+      <div class="result-icon">🎉</div>
+      <h1 class="title success">アクセス権を付与しました</h1>
+      
+      <? if (email) { ?>
+      <div class="user-email"><?= email ?></div>
+      <? } ?>
+      
+      <p class="message"><?= message ?></p>
+      
+      <a href="https://drive.google.com" class="btn btn-primary" target="_blank" rel="noopener noreferrer">
+        Google Drive を開く
+      </a>
+      
+    <? } else { ?>
+      <!-- エラー画面 -->
+      <div class="result-icon">❌</div>
+      <h1 class="title error">認証エラー</h1>
+      
+      <? if (email) { ?>
+      <div class="user-email"><?= email ?></div>
+      <? } ?>
+      
+      <p class="message"><?= message ?></p>
+      
+      <a href="javascript:history.back()" class="btn btn-secondary">
+        入力画面に戻る
+      </a>
+    <? } ?>
+    
     <div class="footer">
       軽音部 引き継ぎ認証システム
     </div>
   </div>
-
-  <script>
-    // ===== State =====
-    var currentIdToken = null;
-    var currentUserName = '';
-    var currentUserEmail = '';
-    var csrfNonce = '<?= nonce ?>';
-
-    // ===== Google Sign-In Initialization =====
-    window.onload = function () {
-      var clientId = '<?= clientId ?>';
-
-      if (!clientId || clientId === 'null') {
-        showError('システムエラー: Google Client ID が設定されていません。管理者に連絡してください。');
-        return;
-      }
-
-      google.accounts.id.initialize({
-        client_id: clientId,
-        callback: handleGoogleSignIn,
-        auto_select: false,
-        cancel_on_tap_outside: true,
-      });
-
-      google.accounts.id.renderButton(
-        document.getElementById('g_id_signin'),
-        {
-          theme: 'filled_blue',
-          size: 'large',
-          shape: 'pill',
-          text: 'signin_with',
-          locale: 'ja',
-          width: 280,
-        }
-      );
-    };
-
-    // ===== Google Sign-In Callback =====
-    function handleGoogleSignIn(response) {
-      currentIdToken = response.credential;
-
-      // JWT をデコード（表示用のみ、検証はサーバーサイドで行う）
-      var payload = JSON.parse(atob(currentIdToken.split('.')[1]));
-      currentUserName = payload.name || payload.email;
-      currentUserEmail = payload.email;
-
-      // UI 更新
-      document.getElementById('userAvatar').textContent = currentUserName.charAt(0).toUpperCase();
-      document.getElementById('userName').textContent = currentUserName;
-      document.getElementById('userEmail').textContent = currentUserEmail;
-
-      // ステップ遷移
-      setStep(2);
-      showSection('passwordSection');
-
-      // パスワード入力にフォーカス
-      setTimeout(function () {
-        document.getElementById('passwordInput').focus();
-      }, 400);
-    }
-
-    // ===== Submit =====
-    function handleSubmit() {
-      var password = document.getElementById('passwordInput').value.trim();
-
-      if (!password) {
-        showError('パスワードを入力してください。');
-        return;
-      }
-
-      if (!currentIdToken) {
-        showError('Google ログインが必要です。ページを再読み込みしてください。');
-        return;
-      }
-
-      // ボタンをロード中に
-      var btn = document.getElementById('submitBtn');
-      btn.disabled = true;
-      btn.innerHTML = '<span class="spinner"></span>認証中...';
-      hideError();
-
-      // サーバーに送信（nonce トークンを含む）
-      google.script.run
-        .withSuccessHandler(handleResult)
-        .withFailureHandler(handleServerError)
-        .verifyAndGrantAccess(currentIdToken, password, csrfNonce);
-    }
-
-    // ===== Result Handler =====
-    function handleResult(result) {
-      resetButton();
-
-      if (result.success) {
-        document.getElementById('resultIcon').textContent = '🎉';
-        document.getElementById('resultTitle').textContent = 'アクセス権を付与しました！';
-        document.getElementById('resultMessage').textContent = result.message;
-        document.getElementById('retryLink').style.display = 'none';
-        setStep(3);
-        showSection('resultSection');
-      } else {
-        showError(result.message);
-      }
-    }
-
-    function handleServerError(error) {
-      resetButton();
-      showError('サーバーエラーが発生しました。しばらく待ってから再試行してください。');
-      console.error('Server error:', error);
-    }
-
-    // ===== UI Helpers =====
-    function showSection(sectionId) {
-      document.querySelectorAll('.section').forEach(function (el) {
-        el.classList.remove('visible');
-      });
-      document.getElementById(sectionId).classList.add('visible');
-    }
-
-    function setStep(num) {
-      for (var i = 1; i <= 3; i++) {
-        var el = document.getElementById('step' + i);
-        el.classList.remove('active', 'done');
-        if (i < num) el.classList.add('done');
-        if (i === num) el.classList.add('active');
-      }
-    }
-
-    function showError(msg) {
-      var el = document.getElementById('errorMsg');
-      el.textContent = msg;
-      el.classList.add('visible');
-    }
-
-    function hideError() {
-      document.getElementById('errorMsg').classList.remove('visible');
-    }
-
-    function resetButton() {
-      var btn = document.getElementById('submitBtn');
-      btn.disabled = false;
-      btn.innerHTML = 'アクセス権を申請';
-    }
-
-    function resetToStart() {
-      currentIdToken = null;
-      currentUserName = '';
-      currentUserEmail = '';
-      document.getElementById('passwordInput').value = '';
-      hideError();
-      setStep(1);
-      showSection('signInSection');
-    }
-
-    // ===== Password Toggle =====
-    document.getElementById('togglePassword').addEventListener('click', function () {
-      var input = document.getElementById('passwordInput');
-      if (input.type === 'password') {
-        input.type = 'text';
-        this.textContent = '🔒';
-        this.title = 'パスワードを隠す';
-      } else {
-        input.type = 'password';
-        this.textContent = '👁';
-        this.title = 'パスワードを表示';
-      }
-    });
-
-    // ===== Enter key to submit =====
-    document.getElementById('passwordInput').addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') {
-        handleSubmit();
-      }
-    });
-  </script>
 </body>
+
 </html>

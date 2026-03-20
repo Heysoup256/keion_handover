@@ -1,5 +1,5 @@
 /**
- * 軽音部 引き継ぎ資料 認証・権限付与システム
+ * 軽音部 引き継ぎ資料 認証・権限付与システム (バックエンド)
  * 
  * === Script Properties に設定が必要な値 ===
  * GOOGLE_CLIENT_ID : Google Cloud Console で作成した OAuth 2.0 クライアント ID
@@ -16,105 +16,135 @@
 // ============================================================
 
 /**
- * GET リクエストを処理し、認証ページを返す
+ * GET リクエスト時の処理
+ * 本システムは GitHub Pages をフロントエンドとするため、直接アクセスされた場合は警告を表示します。
  */
-function doGet() {
-  const template = HtmlService.createTemplateFromFile('Index');
-  template.clientId = getProperty_('GOOGLE_CLIENT_ID');
-
-  // CSRF 対策用の nonce トークンを生成・保存
-  const nonce = generateNonce_();
-  template.nonce = nonce;
-
+function doGet(e) {
+  var template = HtmlService.createTemplateFromFile('Index');
+  template.success = false;
+  template.email = '';
+  template.message = 'このURLには直接アクセスできません。\nGitHub Pages の認証画面からお進みください。';
+  
   return template.evaluate()
-    .setTitle('軽音部 引き継ぎ資料 アクセス申請')
+    .setTitle('エラー - 軽音部 引き継ぎ資料')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+}
+
+/**
+ * POST リクエスト時の処理（GitHub Pages のフォームから送信される）
+ * @param {Object} e - POST されたデータ (e.parameter)
+ */
+function doPost(e) {
+  var idToken = e.parameter.id_token;
+  var password = e.parameter.password;
+  
+  var template = HtmlService.createTemplateFromFile('Index');
+  template.email = '';
+  
+  try {
+    if (!idToken || !password) {
+      throw new Error('必要なデータが不足しています。');
+    }
+
+    // 1. 認証と権限付与のメイン処理
+    var result = verifyAndGrantAccess_(idToken, password);
+    
+    // 2. 結果をテンプレートに設定
+    template.success = result.success;
+    template.message = result.message;
+    if (result.email) {
+      template.email = result.email;
+    }
+
+  } catch (error) {
+    console.error('doPost error:', error);
+    template.success = false;
+    template.message = 'システムエラーが発生しました: ' + error.message;
+  }
+
+  // 結果 HTML を返却する
+  return template.evaluate()
+    .setTitle(template.success ? '成功 - アクセス権付与' : 'エラー - 認証失敗')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
 
 // ============================================================
-// 認証・権限付与
+// 認証・権限付与 メインロジック
 // ============================================================
 
 /**
- * メイン認証関数 — クライアントから呼び出される
- * @param {string} idToken - Google Sign-In から取得した ID Token
- * @param {string} password - ユーザーが入力した共有パスワード
- * @param {string} nonce - CSRF 対策用の nonce トークン
- * @returns {Object} { success: boolean, message: string }
+ * ID Token とパスワードを検証し、権限を付与する
+ * @param {string} idToken
+ * @param {string} password
+ * @returns {Object} { success: boolean, message: string, email?: string }
  */
-function verifyAndGrantAccess(idToken, password, nonce) {
-  try {
-    // 0. Nonce 検証（リプレイ攻撃対策）
-    if (!verifyNonce_(nonce)) {
-      return { success: false, message: '無効なリクエストです。ページを再読み込みしてください。' };
-    }
-
-    // 1. ID Token を Google API で検証
-    const userInfo = verifyIdToken_(idToken);
-    if (!userInfo.success) {
-      logAttempt_(null, false, 'ID Token 検証失敗');
-      return { success: false, message: userInfo.message };
-    }
-    const email = userInfo.email;
-
-    // 2. レート制限チェック
-    const rateCheck = checkRateLimit_(email);
-    if (!rateCheck.allowed) {
-      logAttempt_(email, false, 'レート制限超過');
-      return { success: false, message: rateCheck.message };
-    }
-
-    // 3. ドメイン制限チェック
-    const domainCheck = checkDomain_(email);
-    if (!domainCheck.allowed) {
-      recordAttempt_(email, false);
-      logAttempt_(email, false, 'ドメイン制限');
-      return { success: false, message: domainCheck.message };
-    }
-
-    // 4. パスワード照合（SHA-256 ハッシュ比較）
-    const inputHash = hashPassword_(password);
-    const storedHash = getProperty_('PASSWORD_HASH');
-    if (inputHash !== storedHash) {
-      recordAttempt_(email, false);
-      const remaining = getRemainingAttempts_(email);
-      logAttempt_(email, false, 'パスワード不一致');
-      return {
-        success: false,
-        message: 'パスワードが正しくありません。' +
-          (remaining > 0 ? '（残り ' + remaining + ' 回）' : '')
-      };
-    }
-
-    // 5. 既に権限付与済みかチェック
-    if (isAlreadyGranted_(email)) {
-      logAttempt_(email, true, '付与済み（スキップ）');
-      return { success: true, message: 'すでにアクセス権が付与されています。' };
-    }
-
-    // 6. 権限付与
-    const grantResult = grantPermissions_(email);
-    if (!grantResult.success) {
-      logAttempt_(email, false, '権限付与エラー: ' + grantResult.message);
-      return { success: false, message: grantResult.message };
-    }
-
-    // 7. 成功記録
-    recordAttempt_(email, true);
-    recordGrantedEmail_(email);
-    logAttempt_(email, true, '権限付与成功');
-
-    return {
-      success: true,
-      message: 'アクセス権を付与しました！\nGoogle Drive および Google Sites にアクセスできるようになりました。'
-    };
-
-  } catch (e) {
-    console.error('verifyAndGrantAccess error:', e);
-    logAttempt_(null, false, 'システムエラー: ' + e.message);
-    return { success: false, message: '予期しないエラーが発生しました。管理者に連絡してください。' };
+function verifyAndGrantAccess_(idToken, password) {
+  // 1. ID Token を Google API で検証
+  var userInfo = verifyIdToken_(idToken);
+  if (!userInfo.success) {
+    logAttempt_(null, false, 'ID Token 検証失敗: ' + userInfo.message);
+    return { success: false, message: userInfo.message };
   }
+  var email = userInfo.email;
+
+  // 2. レート制限チェック
+  var rateCheck = checkRateLimit_(email);
+  if (!rateCheck.allowed) {
+    logAttempt_(email, false, 'レート制限超過');
+    return { success: false, message: rateCheck.message, email: email };
+  }
+
+  // 3. ドメイン制限チェック
+  var domainCheck = checkDomain_(email);
+  if (!domainCheck.allowed) {
+    recordAttempt_(email, false);
+    logAttempt_(email, false, 'ドメイン制限');
+    return { success: false, message: domainCheck.message, email: email };
+  }
+
+  // 4. パスワード照合（SHA-256 ハッシュ比較）
+  var inputHash = hashPassword_(password);
+  var storedHash = getProperty_('PASSWORD_HASH');
+  if (inputHash !== storedHash) {
+    recordAttempt_(email, false);
+    var remaining = getRemainingAttempts_(email);
+    logAttempt_(email, false, 'パスワード不一致');
+    return {
+      success: false,
+      message: 'パスワードが正しくありません。\n' + (remaining > 0 ? '（残り ' + remaining + ' 回）' : ''),
+      email: email
+    };
+  }
+
+  // 5. 既に権限付与済みかチェック
+  if (isAlreadyGranted_(email)) {
+    logAttempt_(email, true, '付与済み（スキップ）');
+    return { 
+      success: true, 
+      message: 'すでに Google Drive と Google Sites への\nアクセス権が付与されています。',
+      email: email 
+    };
+  }
+
+  // 6. 権限付与
+  var grantResult = grantPermissions_(email);
+  if (!grantResult.success) {
+    logAttempt_(email, false, '権限付与エラー: ' + grantResult.message);
+    return { success: false, message: grantResult.message, email: email };
+  }
+
+  // 7. 成功記録
+  recordAttempt_(email, true);
+  recordGrantedEmail_(email);
+  logAttempt_(email, true, '権限付与成功');
+
+  return {
+    success: true,
+    message: 'Google Drive および Google Sites の\nアクセス権を付与しました！',
+    email: email
+  };
 }
 
 // ============================================================
@@ -128,24 +158,25 @@ function verifyAndGrantAccess(idToken, password, nonce) {
  */
 function verifyIdToken_(idToken) {
   try {
-    const url = 'https://oauth2.googleapis.com/tokeninfo?id_token=' + encodeURIComponent(idToken);
-    const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
-    const code = response.getResponseCode();
+    var url = 'https://oauth2.googleapis.com/tokeninfo?id_token=' + encodeURIComponent(idToken);
+    var response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+    var code = response.getResponseCode();
 
     if (code !== 200) {
-      return { success: false, message: 'Google 認証に失敗しました。もう一度お試しください。' };
+      return { success: false, message: 'Google 認証に失敗しました。もう一度ログインし直してください。' };
     }
 
-    const payload = JSON.parse(response.getContentText());
-    const clientId = getProperty_('GOOGLE_CLIENT_ID');
+    var payload = JSON.parse(response.getContentText());
+    var clientId = getProperty_('GOOGLE_CLIENT_ID');
 
-    // aud (audience) がこのアプリのクライアント ID と一致するか検証
+    // aud (audience) がこのアプリのクライアント ID と一致するか検証（悪用防止）
     if (payload.aud !== clientId) {
-      return { success: false, message: '不正な認証トークンです。' };
+      console.error('Audience mismatch: expected ' + clientId + ', got ' + payload.aud);
+      return { success: false, message: '不正な認証トークンです。Client IDの不一致。' };
     }
 
-    // トークンの有効期限チェック
-    const now = Math.floor(Date.now() / 1000);
+    // トークンの有効期限チェック（リプレイ攻撃防止）
+    var now = Math.floor(Date.now() / 1000);
     if (parseInt(payload.exp) < now) {
       return { success: false, message: '認証トークンの有効期限が切れています。もう一度ログインしてください。' };
     }
@@ -157,48 +188,8 @@ function verifyIdToken_(idToken) {
     };
   } catch (e) {
     console.error('verifyIdToken_ error:', e);
-    return { success: false, message: 'トークン検証中にエラーが発生しました。' };
+    return { success: false, message: 'トークン検証中にサーバーエラーが発生しました。' };
   }
-}
-
-// ============================================================
-// Nonce トークン（CSRF 対策）
-// ============================================================
-
-/**
- * nonce トークンを生成し、Script Properties に保存
- * @returns {string} nonce
- */
-function generateNonce_() {
-  const nonce = Utilities.getUuid();
-  const props = PropertiesService.getScriptProperties();
-  const key = 'nonce_' + nonce;
-  // 有効期限: 10分
-  const expiry = Date.now() + 10 * 60 * 1000;
-  props.setProperty(key, String(expiry));
-  return nonce;
-}
-
-/**
- * nonce トークンを検証し、使用済みとして削除する（ワンタイムトークン）
- * @param {string} nonce
- * @returns {boolean}
- */
-function verifyNonce_(nonce) {
-  if (!nonce) return false;
-  const props = PropertiesService.getScriptProperties();
-  const key = 'nonce_' + nonce;
-  const expiry = props.getProperty(key);
-
-  if (!expiry) return false;
-
-  // 使用済みとして即削除（ワンタイム）
-  props.deleteProperty(key);
-
-  // 有効期限チェック
-  if (Date.now() > parseInt(expiry)) return false;
-
-  return true;
 }
 
 // ============================================================
@@ -211,18 +202,18 @@ function verifyNonce_(nonce) {
  * @returns {Object} { allowed: boolean, message?: string }
  */
 function checkRateLimit_(email) {
-  const props = PropertiesService.getScriptProperties();
-  const key = 'ratelimit_' + email;
-  const data = props.getProperty(key);
+  var props = PropertiesService.getScriptProperties();
+  var key = 'ratelimit_' + email;
+  var data = props.getProperty(key);
 
   if (!data) {
     return { allowed: true };
   }
 
-  const record = JSON.parse(data);
-  const maxAttempts = parseInt(getProperty_('MAX_ATTEMPTS') || '5');
-  const lockoutMinutes = parseInt(getProperty_('LOCKOUT_MINUTES') || '30');
-  const lockoutMs = lockoutMinutes * 60 * 1000;
+  var record = JSON.parse(data);
+  var maxAttempts = parseInt(getProperty_('MAX_ATTEMPTS') || '5');
+  var lockoutMinutes = parseInt(getProperty_('LOCKOUT_MINUTES') || '30');
+  var lockoutMs = lockoutMinutes * 60 * 1000;
 
   // ロックアウト期間が過ぎていればリセット
   if (record.lockedUntil && Date.now() > record.lockedUntil) {
@@ -232,10 +223,10 @@ function checkRateLimit_(email) {
 
   // ロックアウト中
   if (record.lockedUntil && Date.now() <= record.lockedUntil) {
-    const remainMin = Math.ceil((record.lockedUntil - Date.now()) / 60000);
+    var remainMin = Math.ceil((record.lockedUntil - Date.now()) / 60000);
     return {
       allowed: false,
-      message: '試行回数の上限に達しました。' + remainMin + '分後に再試行してください。'
+      message: '試行回数の上限に達しました。\n' + remainMin + '分後に再試行してください。'
     };
   }
 
@@ -249,7 +240,7 @@ function checkRateLimit_(email) {
   props.setProperty(key, JSON.stringify(record));
   return {
     allowed: false,
-    message: '試行回数の上限に達しました。' + lockoutMinutes + '分後に再試行してください。'
+    message: '試行回数の上限に達しました。\n' + lockoutMinutes + '分後に再試行してください。'
   };
 }
 
@@ -259,8 +250,8 @@ function checkRateLimit_(email) {
  * @param {boolean} success
  */
 function recordAttempt_(email, success) {
-  const props = PropertiesService.getScriptProperties();
-  const key = 'ratelimit_' + email;
+  var props = PropertiesService.getScriptProperties();
+  var key = 'ratelimit_' + email;
 
   if (success) {
     // 成功したらレート制限をリセット
@@ -268,8 +259,8 @@ function recordAttempt_(email, success) {
     return;
   }
 
-  const data = props.getProperty(key);
-  let record = data ? JSON.parse(data) : { failCount: 0 };
+  var data = props.getProperty(key);
+  var record = data ? JSON.parse(data) : { failCount: 0 };
   record.failCount++;
   record.lastAttempt = Date.now();
   props.setProperty(key, JSON.stringify(record));
@@ -281,13 +272,13 @@ function recordAttempt_(email, success) {
  * @returns {number}
  */
 function getRemainingAttempts_(email) {
-  const props = PropertiesService.getScriptProperties();
-  const key = 'ratelimit_' + email;
-  const data = props.getProperty(key);
-  const maxAttempts = parseInt(getProperty_('MAX_ATTEMPTS') || '5');
+  var props = PropertiesService.getScriptProperties();
+  var key = 'ratelimit_' + email;
+  var data = props.getProperty(key);
+  var maxAttempts = parseInt(getProperty_('MAX_ATTEMPTS') || '5');
 
   if (!data) return maxAttempts - 1;
-  const record = JSON.parse(data);
+  var record = JSON.parse(data);
   return Math.max(0, maxAttempts - record.failCount);
 }
 
@@ -301,13 +292,13 @@ function getRemainingAttempts_(email) {
  * @returns {Object} { allowed: boolean, message?: string }
  */
 function checkDomain_(email) {
-  const domainsStr = getProperty_('ALLOWED_DOMAINS');
+  var domainsStr = getProperty_('ALLOWED_DOMAINS');
   if (!domainsStr || domainsStr.trim() === '') {
     return { allowed: true }; // 制限なし
   }
 
-  const allowedDomains = domainsStr.split(',').map(function(d) { return d.trim().toLowerCase(); });
-  const emailDomain = email.split('@')[1].toLowerCase();
+  var allowedDomains = domainsStr.split(',').map(function(d) { return d.trim().toLowerCase(); });
+  var emailDomain = email.split('@')[1].toLowerCase();
 
   if (allowedDomains.indexOf(emailDomain) === -1) {
     return {
@@ -328,12 +319,12 @@ function checkDomain_(email) {
  * @returns {Object} { success: boolean, message?: string }
  */
 function grantPermissions_(email) {
-  const errors = [];
+  var errors = [];
 
   // Drive ファイル/フォルダに権限付与
-  const driveIdsStr = getProperty_('DRIVE_IDS');
+  var driveIdsStr = getProperty_('DRIVE_IDS');
   if (driveIdsStr && driveIdsStr.trim() !== '') {
-    const driveIds = driveIdsStr.split(',').map(function(id) { return id.trim(); });
+    var driveIds = driveIdsStr.split(',').map(function(id) { return id.trim(); });
     driveIds.forEach(function(id) {
       try {
         // まずファイルとして試す
@@ -349,13 +340,13 @@ function grantPermissions_(email) {
         }
       } catch (e) {
         console.error('Failed to grant access for ID ' + id + ': ' + e);
-        errors.push(id);
+        errors.push('Drive ID: ' + id);
       }
     });
   }
 
-  // Google Sites に権限付与（Sites も Drive ファイルとして管理されている）
-  const sitesFileId = getProperty_('SITES_FILE_ID');
+  // Google Sites に権限付与
+  var sitesFileId = getProperty_('SITES_FILE_ID');
   if (sitesFileId && sitesFileId.trim() !== '') {
     try {
       var sitesFile = DriveApp.getFileById(sitesFileId.trim());
@@ -370,7 +361,7 @@ function grantPermissions_(email) {
   if (errors.length > 0) {
     return {
       success: false,
-      message: '一部のファイルへの権限付与に失敗しました（' + errors.join(', ') + '）。管理者に連絡してください。'
+      message: '一部のファイルへの権限付与に失敗しました\n（' + errors.join(', ') + '）。\n管理者に連絡してください。'
     };
   }
 
@@ -387,10 +378,10 @@ function grantPermissions_(email) {
  * @returns {boolean}
  */
 function isAlreadyGranted_(email) {
-  const props = PropertiesService.getScriptProperties();
-  const granted = props.getProperty('granted_emails');
+  var props = PropertiesService.getScriptProperties();
+  var granted = props.getProperty('granted_emails');
   if (!granted) return false;
-  const list = JSON.parse(granted);
+  var list = JSON.parse(granted);
   return list.indexOf(email.toLowerCase()) !== -1;
 }
 
@@ -399,9 +390,9 @@ function isAlreadyGranted_(email) {
  * @param {string} email
  */
 function recordGrantedEmail_(email) {
-  const props = PropertiesService.getScriptProperties();
-  const granted = props.getProperty('granted_emails');
-  const list = granted ? JSON.parse(granted) : [];
+  var props = PropertiesService.getScriptProperties();
+  var granted = props.getProperty('granted_emails');
+  var list = granted ? JSON.parse(granted) : [];
   list.push(email.toLowerCase());
   props.setProperty('granted_emails', JSON.stringify(list));
 }
@@ -416,9 +407,8 @@ function recordGrantedEmail_(email) {
  * @returns {string} hex-encoded SHA-256 hash
  */
 function hashPassword_(password) {
-  const rawHash = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, password, Utilities.Charset.UTF_8);
+  var rawHash = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, password, Utilities.Charset.UTF_8);
   return rawHash.map(function(byte) {
-    // 符号なしバイトに変換して16進数文字列に
     var v = (byte < 0) ? byte + 256 : byte;
     return ('0' + v.toString(16)).slice(-2);
   }).join('');
@@ -429,8 +419,7 @@ function hashPassword_(password) {
 // ============================================================
 
 /**
- * 認証試行をバインド先のスプレッドシートにログ記録する。
- * 「ログ」シートがなければ自動作成する。
+ * 認証試行をバインド先のスプレッドシートにログ記録する
  * @param {string|null} email
  * @param {boolean} success
  * @param {string} detail
@@ -447,10 +436,8 @@ function logAttempt_(email, success, detail) {
     if (!sheet) {
       sheet = ss.insertSheet('ログ');
       sheet.appendRow(['日時', 'メールアドレス', '結果', '詳細']);
-      // ヘッダー行を太字に
       sheet.getRange(1, 1, 1, 4).setFontWeight('bold');
       sheet.setFrozenRows(1);
-      // 列幅を調整
       sheet.setColumnWidth(1, 180);
       sheet.setColumnWidth(2, 250);
       sheet.setColumnWidth(3, 80);
@@ -472,11 +459,6 @@ function logAttempt_(email, success, detail) {
 // ユーティリティ
 // ============================================================
 
-/**
- * Script Properties から値を取得
- * @param {string} key
- * @returns {string|null}
- */
 function getProperty_(key) {
   return PropertiesService.getScriptProperties().getProperty(key);
 }
@@ -485,20 +467,9 @@ function getProperty_(key) {
 // セットアップ用ヘルパー（手動実行用）
 // ============================================================
 
-/**
- * パスワードの SHA-256 ハッシュを生成するヘルパー関数。
- * GAS エディタで手動実行して、出力されたハッシュを
- * Script Properties の PASSWORD_HASH に設定してください。
- * 
- * 使用方法:
- *   1. 関数名の右の▶で実行（引数を変更してから）
- *   2. または GAS エディタのコンソールで generatePasswordHash('あなたのパスワード') を実行
- * 
- * @param {string} password - ハッシュ化したいパスワード
- */
 function generatePasswordHash(password) {
   if (!password || password === 'ここにパスワードを入力') {
-    password = 'ここにパスワードを入力';  // デモ用
+    password = 'ここにパスワードを入力';
   }
   var hash = hashPassword_(password);
   console.log('=== パスワードハッシュ生成 ===');
@@ -509,10 +480,6 @@ function generatePasswordHash(password) {
   return hash;
 }
 
-/**
- * 初期設定を確認するヘルパー関数。
- * GAS エディタで手動実行して、現在の Script Properties を確認できます。
- */
 function checkSetup() {
   var props = PropertiesService.getScriptProperties().getProperties();
   var required = ['GOOGLE_CLIENT_ID', 'PASSWORD_HASH', 'DRIVE_IDS', 'SITES_FILE_ID'];
@@ -525,63 +492,19 @@ function checkSetup() {
   });
 
   if (missing.length > 0) {
-    console.log('⚠️ 以下の Script Properties が未設定です:');
-    console.log(missing.join(', '));
-    console.log('\nGAS エディタ → プロジェクトの設定 → スクリプト プロパティ で設定してください。');
+    console.log('⚠️ 以下の Script Properties が未設定です:\n' + missing.join(', '));
   } else {
     console.log('✅ 必須の Script Properties はすべて設定されています。');
   }
 
   console.log('\n--- 現在の設定 ---');
   Object.keys(props).forEach(function(key) {
-    // 秘匿情報は一部マスク
     if (key === 'PASSWORD_HASH') {
-      var val = props[key];
-      console.log(key + ': ' + val.substring(0, 8) + '...');
-    } else if (key.indexOf('ratelimit_') === 0 || key === 'granted_emails' || key.indexOf('nonce_') === 0) {
+      console.log(key + ': ' + props[key].substring(0, 8) + '...');
+    } else if (key.indexOf('ratelimit_') === 0 || key === 'granted_emails') {
       // ランタイムデータはスキップ
     } else {
       console.log(key + ': ' + props[key]);
     }
   });
-
-  // 付与済みメール一覧
-  var granted = props['granted_emails'];
-  if (granted) {
-    console.log('\n--- 権限付与済みメールアドレス ---');
-    JSON.parse(granted).forEach(function(e) { console.log('  ' + e); });
-  }
-
-  // スプレッドシートバインド確認
-  try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    if (ss) {
-      console.log('\n✅ スプレッドシートにバインドされています: ' + ss.getName());
-    }
-  } catch (e) {
-    console.log('\n⚠️ スプレッドシートにバインドされていません。ログ記録は無効です。');
-  }
-}
-
-/**
- * 期限切れの nonce トークンをクリーンアップする。
- * 必要に応じてトリガーで定期実行してください。
- */
-function cleanupExpiredNonces() {
-  var props = PropertiesService.getScriptProperties();
-  var allProps = props.getProperties();
-  var now = Date.now();
-  var cleaned = 0;
-
-  Object.keys(allProps).forEach(function(key) {
-    if (key.indexOf('nonce_') === 0) {
-      var expiry = parseInt(allProps[key]);
-      if (now > expiry) {
-        props.deleteProperty(key);
-        cleaned++;
-      }
-    }
-  });
-
-  console.log('クリーンアップ完了: ' + cleaned + ' 件の期限切れ nonce を削除しました。');
 }
