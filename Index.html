@@ -120,9 +120,15 @@
       
       <p class="message"><?= message ?></p>
       
-      <button class="btn btn-secondary" onclick="window.history.back();">
-        戻ってやり直す
-      </button>
+      <? if (returnUrl) { ?>
+        <a href="<?= returnUrl ?>" class="btn btn-secondary" target="_top">
+          戻ってやり直す
+        </a>
+      <? } else { ?>
+        <button class="btn btn-secondary" onclick="window.top.location.href = document.referrer || 'javascript:history.back()';">
+          戻ってやり直す
+        </button>
+      <? } ?>
     <? } ?>
   </div>
 </body>

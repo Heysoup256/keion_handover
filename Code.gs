@@ -33,10 +33,12 @@ function doPost(e) {
   // フロントエンドから渡されるパラメータ
   var idToken = e.parameter.id_token;
   var password = e.parameter.password;
+  var returnUrl = e.parameter.return_url;
   
   var template = HtmlService.createTemplateFromFile('Index');
   template.success = false;
   template.email = '';
+  template.returnUrl = returnUrl || '';
   
   try {
     if (!idToken || !password) {

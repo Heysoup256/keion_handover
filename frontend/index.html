@@ -422,6 +422,7 @@
       <form id="gasForm" method="POST">
         <!-- Google から取得した ID トークンを GAS に渡すための隠しフィールド -->
         <input type="hidden" id="idTokenInput" name="id_token" value="">
+        <input type="hidden" id="returnUrlInput" name="return_url" value="">
 
         <div class="form-group">
           <label for="passwordInput">共有パスワード</label>
@@ -473,6 +474,12 @@
       const form = document.getElementById('gasForm');
       if (form) {
         form.action = GAS_EXEC_URL;
+      }
+
+      // エラー時に元の Vercel の画面に戻ってこれるように、現在の URL を隠しフィールドにセット
+      const returnUrlInput = document.getElementById('returnUrlInput');
+      if (returnUrlInput) {
+        returnUrlInput.value = window.location.href;
       }
 
       // 完全にJavaScript側からGISライブラリを初期化する（確実な同期処理）
