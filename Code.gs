@@ -252,11 +252,11 @@ function grantPermissions_(email) {
         // 先にファイルとして取得を試みる
         try {
           var file = DriveApp.getFileById(id);
-          file.addEditor(email);
+          file.addViewer(email);
         } catch (_) {
           // ファイルでなければフォルダとして取得
           var folder = DriveApp.getFolderById(id);
-          folder.addEditor(email);
+          folder.addViewer(email);
         }
       } catch (e) {
         console.error('Drive Permission Error for ID ' + id + ': ' + e.message);
@@ -270,7 +270,7 @@ function grantPermissions_(email) {
   if (sitesFileId && sitesFileId.trim() !== '') {
     try {
       var siteFile = DriveApp.getFileById(sitesFileId.trim());
-      siteFile.addEditor(email);
+      siteFile.addViewer(email);
     } catch (e) {
       console.error('Sites Permission Error: ' + e.message);
       errors.push('Sites');
