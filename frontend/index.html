@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>軽音部 引き継ぎ資料 アクセス申請</title>
+
+  <!-- Google Identity Services (GIS) Library -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <style>
+    /* ===== Reset & Base ===== */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', 'Noto Sans JP', 'Hiragino Sans', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+      color: #e0e0e0;
+      padding: 20px;
+    }
+
+    /* ===== Card (Glassmorphism) ===== */
+    .card {
+      background: rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 40px 36px;
+      max-width: 440px;
+      width: 100%;
+      box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
+      position: relative;
+    }
+
+    /* ===== Header ===== */
+    .header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .header .icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+
+    .header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+
+    .header p {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.55);
+      line-height: 1.6;
+    }
+
+    /* ===== Setup Notice (Dev Only) ===== */
+    .setup-notice {
+      display: none;
+      background: rgba(255, 138, 128, 0.1);
+      border: 1px solid rgba(255, 138, 128, 0.3);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 24px;
+    }
+
+    .setup-notice h3 {
+      color: #ff8a80;
+      font-size: 14px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .setup-notice p,
+    .setup-notice li {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.8);
+      line-height: 1.5;
+      margin-bottom: 4px;
+    }
+
+    .setup-notice ul {
+      margin-left: 20px;
+      margin-top: 6px;
+    }
+
+    /* ===== Steps indicator ===== */
+    .steps {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 28px;
+    }
+
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.35);
+      transition: color 0.3s;
+    }
+
+    .step.active {
+      color: #7c83ff;
+    }
+
+    .step.done {
+      color: #4caf93;
+    }
+
+    .step-num {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 12px;
+      border: 2px solid rgba(255, 255, 255, 0.15);
+      transition: all 0.3s;
+    }
+
+    .step.active .step-num {
+      border-color: #7c83ff;
+      background: rgba(124, 131, 255, 0.15);
+      color: #7c83ff;
+    }
+
+    .step.done .step-num {
+      border-color: #4caf93;
+      background: rgba(76, 175, 147, 0.15);
+      color: #4caf93;
+    }
+
+    .step-connector {
+      width: 30px;
+      height: 2px;
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: 1px;
+    }
+
+    /* ===== Sections ===== */
+    .section {
+      display: none;
+      animation: fadeIn 0.4s ease forwards;
+    }
+
+    .section.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* ===== Google Sign-In Container ===== */
+    .g_id_signin_container {
+      display: flex;
+      justify-content: center;
+      margin-top: 10px;
+      min-height: 44px;
+      /* 防止 layout shift */
+    }
+
+    /* ===== User Info Display ===== */
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(76, 175, 147, 0.1);
+      border: 1px solid rgba(76, 175, 147, 0.25);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 20px;
+    }
+
+    .user-info .avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #7c83ff, #4caf93);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .user-info .details {
+      overflow: hidden;
+    }
+
+    .user-info .name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .user-info .email {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.5);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ===== Form Inputs ===== */
+    .form-group {
+      margin-bottom: 24px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 8px;
+    }
+
+    .input-wrapper {
+      position: relative;
+    }
+
+    .input-wrapper input {
+      width: 100%;
+      padding: 14px 44px 14px 16px;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 10px;
+      color: #fff;
+      font-size: 15px;
+      outline: none;
+      transition: all 0.3s;
+    }
+
+    .input-wrapper input:focus {
+      border-color: #7c83ff;
+      background: rgba(255, 255, 255, 0.1);
+      box-shadow: 0 0 0 3px rgba(124, 131, 255, 0.15);
+    }
+
+    .input-wrapper input::placeholder {
+      color: rgba(255, 255, 255, 0.3);
+    }
+
+    .toggle-password {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: rgba(255, 255, 255, 0.4);
+      cursor: pointer;
+      font-size: 18px;
+      padding: 4px;
+      transition: color 0.2s;
+    }
+
+    .toggle-password:hover {
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    /* ===== Buttons ===== */
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      padding: 14px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #7c83ff, #5c64e4);
+      color: #fff;
+      box-shadow: 0 4px 15px rgba(124, 131, 255, 0.2);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(124, 131, 255, 0.4);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+
+    /* ===== Spinner ===== */
+    .spinner {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 0.8s ease-in-out infinite;
+      margin-right: 8px;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* ===== Error Message ===== */
+    .error-msg {
+      display: none;
+      background: rgba(255, 82, 82, 0.1);
+      color: #ff5252;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-bottom: 16px;
+      border: 1px solid rgba(255, 82, 82, 0.2);
+    }
+
+    /* ===== Footer ===== */
+    .footer {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.25);
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="card">
+    <div class="header">
+      <div class="icon">🎸</div>
+      <h1>軽音部 引き継ぎ資料</h1>
+      <p id="headerDesc">アクセス権を取得するには、Google アカウントとパスワードが必要です。</p>
+    </div>
+
+    <!-- 開発・デプロイ前の初期設定エラー表示用 -->
+    <div id="setupNotice" class="setup-notice">
+      <h3>⚠️ 初期設定が必要です</h3>
+      <p>この HTML ファイルのソースコード (/frontend/index.html) を開き、下部の JavaScript にある以下の2つの定数を設定してください。</p>
+      <ul>
+        <li><code>GAS_EXEC_URL</code> (Google Apps Script のデプロイURL)</li>
+        <li><code>GOOGLE_CLIENT_ID</code> (GCP のクライアントID)</li>
+      </ul>
+    </div>
+
+    <div class="steps">
+      <div class="step active" id="step1-indicator">
+        <span class="step-num">1</span>
+        <span>Google ログイン</span>
+      </div>
+      <div class="step-connector" id="connector"></div>
+      <div class="step" id="step2-indicator">
+        <span class="step-num">2</span>
+        <span>パスワード</span>
+      </div>
+    </div>
+
+    <!-- ===== STEP 1: Google Login ===== -->
+    <div id="signInSection" class="section active">
+      <p style="text-align: center; font-size: 13px; color: rgba(255,255,255,0.7); margin-bottom: 16px;">
+        権限を付与するアカウントを選択してください。
+      </p>
+      <!-- GIS Button Container -->
+      <div class="g_id_signin_container">
+        <div id="g_id_onload" data-context="signin" data-ux_mode="popup" data-callback="handleGoogleSignIn"
+          data-auto_prompt="false">
+        </div>
+        <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="outline"
+          data-text="signin_with" data-size="large" data-logo_alignment="left">
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== STEP 2: Password Input ===== -->
+    <div id="passwordSection" class="section">
+      <div class="user-info">
+        <div class="avatar" id="userAvatar">?</div>
+        <div class="details">
+          <div class="name" id="userName">User Name</div>
+          <div class="email" id="userEmail">user@example.com</div>
+        </div>
+      </div>
+
+      <div id="errorBox" class="error-msg"></div>
+
+      <!-- GAS への POST フォーム -->
+      <!-- action 属性は JS で動的に設定されます -->
+      <form id="gasForm" method="POST">
+        <!-- Google から取得した ID トークンを GAS に渡すための隠しフィールド -->
+        <input type="hidden" id="idTokenInput" name="id_token" value="">
+
+        <div class="form-group">
+          <label for="passwordInput">共有パスワード</label>
+          <div class="input-wrapper">
+            <input type="password" id="passwordInput" name="password" placeholder="パスワードを入力" autocomplete="off"
+              required>
+            <button class="toggle-password" id="togglePassword" type="button" title="パスワードを表示">👁</button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" id="submitBtn">
+          アクセス権を申請
+        </button>
+      </form>
+    </div>
+
+    <div class="footer">
+      軽音部 引き継ぎ認証システム
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // 【重要設定】デプロイ前（Vercel公開等）に必ず以下の2つの値を書き換えてください
+    // =========================================================================
+
+    // 1. GAS 「新しいデプロイ」で発行された URL (https://script.google.com/macros/s/.../exec)
+    const GAS_EXEC_URL = 'https://script.google.com/macros/s/AKfycbzw-yJHQgvpYAZFHiN--XWiJhvahWYv2C70Od2prEy5tSlpYRLMibJ8XUphVZcIr7t2rg/exec';
+
+    // 2. Google Cloud Console で作成した「OAuth 2.0 クライアント ID」
+    const GOOGLE_CLIENT_ID = '387984121276-ojjf4k8sllftcllc61oce245fg1eigmq.apps.googleusercontent.com';
+
+    // =========================================================================
+
+    let currentIdToken = null;
+    let currentUserName = '';
+    let currentUserEmail = '';
+
+    // ===== 初期化処理 =====
+    window.onload = function () {
+      // 必須設定のチェック
+      if (!GAS_EXEC_URL || !GOOGLE_CLIENT_ID) {
+        document.getElementById('setupNotice').style.display = 'block';
+        document.getElementById('signInSection').style.display = 'none';
+
+        // 開発用にモック動作させる場合は以下のコメントを外す
+        // testLocally(); 
+        return;
+      }
+
+      // GIS (Google Identity Services) のクライアントIDをセット
+      const el = document.getElementById('g_id_onload');
+      if (el) {
+        el.setAttribute('data-client_id', GOOGLE_CLIENT_ID);
+      }
+
+      // Form の POST 先を GAS の URL にセット
+      const form = document.getElementById('gasForm');
+      if (form) {
+        form.action = GAS_EXEC_URL;
+      }
+    };
+
+    // UIのステップを切り替える関数
+    function setStep(step) {
+      const step1 = document.getElementById('step1-indicator');
+      const step2 = document.getElementById('step2-indicator');
+      const conn = document.getElementById('connector');
+
+      if (step === 2) {
+        step1.classList.remove('active');
+        step1.classList.add('done');
+        step2.classList.add('active');
+        conn.style.background = '#4caf93';
+      }
+    }
+
+    function showSection(id) {
+      document.querySelectorAll('.section').forEach(el => {
+        el.classList.remove('active');
+      });
+      document.getElementById(id).classList.add('active');
+    }
+
+    function showError(msg) {
+      const box = document.getElementById('errorBox');
+      box.textContent = msg;
+      box.style.display = 'block';
+    }
+
+    function hideError() {
+      document.getElementById('errorBox').style.display = 'none';
+    }
+
+    // ===== Google Sign-In Callback =====
+    function handleGoogleSignIn(response) {
+      if (response && response.credential) {
+        currentIdToken = response.credential;
+        document.getElementById('idTokenInput').value = currentIdToken;
+
+        // JWT (ID Token) をデコードしてユーザー情報を取得
+        try {
+          var base64Url = currentIdToken.split('.')[1];
+          var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+          var jsonPayload = decodeURIComponent(atob(base64).split('').map(function (c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+          }).join(''));
+
+          var payload = JSON.parse(jsonPayload);
+          currentUserName = payload.name || payload.email;
+          currentUserEmail = payload.email;
+
+          // UI 更新
+          document.getElementById('userAvatar').textContent = currentUserName.charAt(0).toUpperCase();
+          document.getElementById('userName').textContent = currentUserName;
+          document.getElementById('userEmail').textContent = currentUserEmail;
+
+        } catch (e) {
+          console.error("IDトークンの解析に失敗しました", e);
+        }
+
+        // ステップ遷移
+        setStep(2);
+        showSection('passwordSection');
+
+        // パスワード入力にフォーカス
+        setTimeout(function () {
+          document.getElementById('passwordInput').focus();
+        }, 300);
+      }
+    }
+
+    // ===== Password Visibility Toggle =====
+    document.getElementById('togglePassword').addEventListener('click', function () {
+      const input = document.getElementById('passwordInput');
+      if (input.type === 'password') {
+        input.type = 'text';
+        this.textContent = '🔒';
+      } else {
+        input.type = 'password';
+        this.textContent = '👁';
+      }
+    });
+
+    // ===== Form Submit Handler =====
+    document.getElementById('gasForm').addEventListener('submit', function (e) {
+      var password = document.getElementById('passwordInput').value.trim();
+
+      if (!password) {
+        e.preventDefault();
+        showError('パスワードを入力してください。');
+        return;
+      }
+      if (!currentIdToken) {
+        e.preventDefault();
+        showError('Google ログインが完了していません。最初からやり直してください。');
+        return;
+      }
+
+      // 送信直前のUI変更
+      const btn = document.getElementById('submitBtn');
+      btn.innerHTML = '<span class="spinner"></span>送信中...';
+      btn.style.opacity = '0.8';
+      hideError();
+
+      // 注意: form action="GAS_EXEC_URL" method="POST" により
+      // ページ遷移してGASが返すHTMLが画面に表示されます。
+    });
+
+    // (開発用モック関数)
+    function testLocally() {
+      console.warn("ローカル開発モードで動作しています。");
+      currentIdToken = "dummy_token";
+      document.getElementById('idTokenInput').value = currentIdToken;
+      currentUserName = "ローカル 太郎";
+      currentUserEmail = "local@example.com";
+      document.getElementById('userAvatar').textContent = 'ロ';
+      document.getElementById('userName').textContent = currentUserName;
+      document.getElementById('userEmail').textContent = currentUserEmail;
+      setStep(2);
+      showSection('passwordSection');
+
+      document.getElementById('gasForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        alert('パスワード送信テスト (GAS_EXEC_URL が未設定のため送信されません)\nPassword: ' + document.getElementById('passwordInput').value);
+      });
+    }
+  </script>
+</body>
+
+</html>
