@@ -4,10 +4,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  <!-- URLを検索エンジン等にインデックスさせない（隠蔽機能） -->
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  
   <title>軽音部 引き継ぎ資料 アクセス申請</title>
 
-  <!-- Google Identity Services (GIS) Library -->
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <!-- Google Identity Services (GIS) Library (確実な同期読み込みに変更) -->
+  <script src="https://accounts.google.com/gsi/client"></script>
 
   <style>
     /* ===== Reset & Base ===== */
@@ -168,15 +172,8 @@
     }
 
     @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(10px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     /* ===== Google Sign-In Container ===== */
@@ -184,8 +181,7 @@
       display: flex;
       justify-content: center;
       margin-top: 10px;
-      min-height: 44px;
-      /* 防止 layout shift */
+      min-height: 44px; /* 防止 layout shift */
     }
 
     /* ===== User Info Display ===== */
@@ -335,9 +331,7 @@
     }
 
     @keyframes spin {
-      to {
-        transform: rotate(360deg);
-      }
+      to { transform: rotate(360deg); }
     }
 
     /* ===== Error Message ===== */
@@ -399,15 +393,8 @@
         権限を付与するアカウントを選択してください。
       </p>
       <!-- GIS Button Container -->
-      <div class="g_id_signin_container">
-        <div id="g_id_onload" 
-          data-client_id="387984121276-ojjf4k8sllftcllc61oce245fg1eigmq.apps.googleusercontent.com" 
-          data-context="signin" data-ux_mode="popup" data-callback="handleGoogleSignIn"
-          data-auto_prompt="false">
-        </div>
-        <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="outline"
-          data-text="signin_with" data-size="large" data-logo_alignment="left">
-        </div>
+      <div id="g_id_signin_container" class="g_id_signin_container">
+        <!-- JSでボタンがここに描画されます -->
       </div>
     </div>
 
@@ -424,7 +411,6 @@
       <div id="errorBox" class="error-msg"></div>
 
       <!-- GAS への POST フォーム -->
-      <!-- action 属性は JS で動的に設定されます -->
       <form id="gasForm" method="POST">
         <!-- Google から取得した ID トークンを GAS に渡すための隠しフィールド -->
         <input type="hidden" id="idTokenInput" name="id_token" value="">
@@ -472,9 +458,6 @@
       if (!GAS_EXEC_URL || !GOOGLE_CLIENT_ID) {
         document.getElementById('setupNotice').style.display = 'block';
         document.getElementById('signInSection').style.display = 'none';
-
-        // 開発用にモック動作させる場合は以下のコメントを外す
-        // testLocally(); 
         return;
       }
 
@@ -482,6 +465,30 @@
       const form = document.getElementById('gasForm');
       if (form) {
         form.action = GAS_EXEC_URL;
+      }
+
+      // 完全にJavaScript側からGISライブラリを初期化する（確実な同期処理）
+      if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
+        google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: handleGoogleSignIn,
+          ux_mode: "popup"
+        });
+        
+        // 指定したコンテナ（g_id_signin_container）の中にボタンを描画する
+        google.accounts.id.renderButton(
+          document.getElementById('g_id_signin_container'),
+          { 
+            theme: "outline", 
+            size: "large", 
+            type: "standard", 
+            shape: "rectangular", 
+            text: "signin_with", 
+            logo_alignment: "left" 
+          }
+        );
+      } else {
+        showError("Googleの認証ライブラリの読み込みに失敗しました。再読み込みしてください。");
       }
     };
 
@@ -591,24 +598,6 @@
       // ページ遷移してGASが返すHTMLが画面に表示されます。
     });
 
-    // (開発用モック関数)
-    function testLocally() {
-      console.warn("ローカル開発モードで動作しています。");
-      currentIdToken = "dummy_token";
-      document.getElementById('idTokenInput').value = currentIdToken;
-      currentUserName = "ローカル 太郎";
-      currentUserEmail = "local@example.com";
-      document.getElementById('userAvatar').textContent = 'ロ';
-      document.getElementById('userName').textContent = currentUserName;
-      document.getElementById('userEmail').textContent = currentUserEmail;
-      setStep(2);
-      showSection('passwordSection');
-
-      document.getElementById('gasForm').addEventListener('submit', function (e) {
-        e.preventDefault();
-        alert('パスワード送信テスト (GAS_EXEC_URL が未設定のため送信されません)\nPassword: ' + document.getElementById('passwordInput').value);
-      });
-    }
   </script>
 </body>
 
