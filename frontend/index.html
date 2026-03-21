@@ -41,34 +41,40 @@
       -webkit-backdrop-filter: blur(20px);
       border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 20px;
-      padding: 40px 36px;
-      max-width: 440px;
+      padding: 48px 40px;
+      max-width: 480px;
       width: 100%;
       box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
       position: relative;
     }
 
+    @media (max-width: 480px) {
+      .card {
+        padding: 32px 24px;
+      }
+    }
+
     /* ===== Header ===== */
     .header {
       text-align: center;
-      margin-bottom: 32px;
+      margin-bottom: 36px;
     }
 
     .header .icon {
-      font-size: 48px;
-      margin-bottom: 12px;
+      font-size: 56px;
+      margin-bottom: 16px;
     }
 
     .header h1 {
-      font-size: 22px;
+      font-size: 26px;
       font-weight: 700;
       color: #fff;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
     }
 
     .header p {
-      font-size: 13px;
-      color: rgba(255, 255, 255, 0.55);
+      font-size: 15px;
+      color: rgba(255, 255, 255, 0.65);
       line-height: 1.6;
     }
 
@@ -108,15 +114,17 @@
     .steps {
       display: flex;
       justify-content: center;
-      gap: 8px;
-      margin-bottom: 28px;
+      align-items: center;  /* 線のズレを修正するための中央揃え */
+      gap: 12px;
+      margin-bottom: 32px;
     }
 
     .step {
       display: flex;
       align-items: center;
-      gap: 6px;
-      font-size: 12px;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 600;
       color: rgba(255, 255, 255, 0.35);
       transition: color 0.3s;
     }
@@ -130,14 +138,14 @@
     }
 
     .step-num {
-      width: 24px;
-      height: 24px;
+      width: 28px;
+      height: 28px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: 700;
-      font-size: 12px;
+      font-size: 14px;
       border: 2px solid rgba(255, 255, 255, 0.15);
       transition: all 0.3s;
     }
@@ -155,7 +163,7 @@
     }
 
     .step-connector {
-      width: 30px;
+      width: 40px;
       height: 2px;
       background: rgba(255, 255, 255, 0.12);
       border-radius: 1px;
@@ -233,12 +241,12 @@
 
     /* ===== Form Inputs ===== */
     .form-group {
-      margin-bottom: 24px;
+      margin-bottom: 28px;
     }
 
     .form-group label {
       display: block;
-      font-size: 13px;
+      font-size: 14px;
       font-weight: 600;
       color: rgba(255, 255, 255, 0.7);
       margin-bottom: 8px;
@@ -250,12 +258,12 @@
 
     .input-wrapper input {
       width: 100%;
-      padding: 14px 44px 14px 16px;
+      padding: 16px 48px 16px 20px;
       background: rgba(255, 255, 255, 0.07);
       border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 10px;
+      border-radius: 12px;
       color: #fff;
-      font-size: 15px;
+      font-size: 16px; /* 16pxにすることでスマホでの自動ズームを防止 */
       outline: none;
       transition: all 0.3s;
     }
@@ -294,9 +302,9 @@
       align-items: center;
       justify-content: center;
       width: 100%;
-      padding: 14px;
-      border-radius: 10px;
-      font-size: 15px;
+      padding: 16px;
+      border-radius: 12px;
+      font-size: 16px;
       font-weight: 700;
       border: none;
       cursor: pointer;

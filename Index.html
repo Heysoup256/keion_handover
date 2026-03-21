@@ -102,9 +102,14 @@
       
       <p class="message"><?= message ?></p>
       
-      <a href="https://drive.google.com" class="btn btn-primary" target="_top">
-        Google Drive を開く
-      </a>
+      <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px;">
+        <a href="https://sites.google.com/view/keion2026handover/" class="btn btn-primary" target="_top">
+          Google Sites (引き継ぎサイト) を開く
+        </a>
+        <a href="https://drive.google.com/drive/folders/1BwwB04_N6iHWhcBoRlnVBs0wHzgPRoe3?usp=drive_link" class="btn btn-secondary" target="_top" style="background: rgba(255, 255, 255, 0.15);">
+          Google Drive (資料フォルダ) を開く
+        </a>
+      </div>
     <? } else { ?>
       <div class="icon">❌</div>
       <h1 class="title error">認証エラー</h1>
