@@ -400,7 +400,9 @@
       </p>
       <!-- GIS Button Container -->
       <div class="g_id_signin_container">
-        <div id="g_id_onload" data-context="signin" data-ux_mode="popup" data-callback="handleGoogleSignIn"
+        <div id="g_id_onload" 
+          data-client_id="387984121276-ojjf4k8sllftcllc61oce245fg1eigmq.apps.googleusercontent.com" 
+          data-context="signin" data-ux_mode="popup" data-callback="handleGoogleSignIn"
           data-auto_prompt="false">
         </div>
         <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="outline"
@@ -474,12 +476,6 @@
         // 開発用にモック動作させる場合は以下のコメントを外す
         // testLocally(); 
         return;
-      }
-
-      // GIS (Google Identity Services) のクライアントIDをセット
-      const el = document.getElementById('g_id_onload');
-      if (el) {
-        el.setAttribute('data-client_id', GOOGLE_CLIENT_ID);
       }
 
       // Form の POST 先を GAS の URL にセット
