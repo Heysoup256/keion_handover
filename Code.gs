@@ -338,3 +338,18 @@ function generatePasswordHash(password) {
 function getProperty_(key) {
   return PropertiesService.getScriptProperties().getProperty(key);
 }
+
+/**
+ * 開発者向けヘルパー：すべての権限を一括で許可させるためのダミー関数。
+ * 外部通信 (UrlFetchApp) と Drive アクセス (DriveApp) の両方をトリガーします。
+ * GAS エディタからこの関数を選択して「実行」を押すことで確実に承認ポップアップを発生させます。
+ */
+function setupPermissions() {
+  try {
+    UrlFetchApp.fetch('https://www.google.com', { muteHttpExceptions: true });
+    DriveApp.getFiles();
+    console.log('すべての必要な権限（外部通信、Driveアクセス）が正常に承認されました！');
+  } catch (e) {
+    console.error('権限の承認に失敗したか、エラーが発生しました: ' + e.message);
+  }
+}
